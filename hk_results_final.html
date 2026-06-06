@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Hoshin Kanri Results</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --text: #1A1A18;
+    --text-muted: #6B6B67;
+    --accent: #1D5C3A;
+    --accent-light: #E8F2EC;
+    --border: rgba(0,0,0,0.09);
+    --radar-fill: rgba(29, 92, 58, 0.12);
+    --radar-stroke: #1D5C3A;
+    --grid: rgba(0,0,0,0.07);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 60px 40px 80px;
+  }
+
+  .header {
+    margin-bottom: 52px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 36px;
+  }
+
+  .header-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .header p {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    max-width: 520px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .score-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0.25;
+  }
+
+  .score-card.highlight::before {
+    opacity: 1;
+  }
+
+  .score-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.01em;
+  }
+
+  .score-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 34px;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .score-value span {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
+  .score-bar-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    margin-bottom: 32px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .section-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    height: 380px;
+  }
+
+  .interpretation {
+    background: var(--accent-light);
+    border: 1px solid rgba(29,92,58,0.15);
+    border-radius: 12px;
+    padding: 24px 26px;
+    margin-bottom: 32px;
+  }
+
+  .interpretation h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+  }
+
+  .interp-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .interp-row:last-child { margin-bottom: 0; }
+
+  .interp-score {
+    font-weight: 500;
+    min-width: 28px;
+    color: var(--accent);
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 14px 28px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+
+  .download-btn:hover { opacity: 0.88; }
+  .download-btn:active { transform: scale(0.98); }
+
+  .download-btn svg {
+    width: 17px;
+    height: 17px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .footer-note {
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .scale-legend {
+    display: flex;
+    gap: 0;
+    margin-bottom: 28px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .scale-segment {
+    flex: 1;
+    padding: 7px 4px;
+    text-align: center;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .scale-segment:nth-child(1) { background: #F5E8E8; color: #8B2020; }
+  .scale-segment:nth-child(2) { background: #FDF0E0; color: #7A4F0A; }
+  .scale-segment:nth-child(3) { background: #EAF5E8; color: #1D5C3A; }
+
+  @media print {
+    .download-btn { display: none; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+<div class="page" id="report">
+
+  <div class="header">
+    <div class="header-label">Hoshin Kanri Assessment</div>
+    <h1>Your individual results</h1>
+    <p>Below you find your scores per dimension, based on your responses. Scores reflect the average rating (1–9) per subscale, where 1 = not at all applied and 9 = fully applied.</p>
+  </div>
+
+  <div class="grid" id="scoreGrid"></div>
+
+  <div class="chart-section">
+    <div class="section-title">Hoshin Kanri Organisational Profile</div>
+    <div class="section-sub">Your scores across all five Hoshin Kanri dimensions</div>
+    <div class="scale-legend">
+      <div class="scale-segment">1–3 · Not applied</div>
+      <div class="scale-segment">4–6 · Partially applied</div>
+      <div class="scale-segment">7–9 · Fully applied</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="radarChart" role="img" aria-label="Radar chart showing Hoshin Kanri maturity scores across five dimensions"></canvas>
+    </div>
+  </div>
+
+  <div class="interpretation" id="interpretationBox">
+    <h3>Score interpretation</h3>
+    <div id="interpContent"></div>
+  </div>
+
+  <button class="download-btn" onclick="downloadPDF()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Download as PDF
+  </button>
+
+  <p class="footer-note">This report is generated individually based on your survey responses. Results are confidential and are not shared with other participants. For questions about this study, please contact the researcher.</p>
+
+</div>
+
+<script>
+const LABELS = [
+  'Strategic Focus',
+  'Catchball & Alignment',
+  'PDCA & Continuous Improvement',
+  'Leadership & Coaching',
+  'Organisational Learning & Culture'
+];
+
+const KEYS = ['sf', 'ca', 'pdca', 'lc', 'olc'];
+
+const COLORS = {
+  radarFill: 'rgba(29, 92, 58, 0.13)',
+  radarStroke: '#1D5C3A',
+  radarPoint: '#1D5C3A',
+  grid: 'rgba(0,0,0,0.07)',
+  tick: 'rgba(0,0,0,0.35)'
+};
+
+function getParams() {
+  const p = new URLSearchParams(window.location.search);
+  const scores = {};
+  KEYS.forEach(k => {
+    const v = parseFloat(p.get(k));
+    scores[k] = (!isNaN(v) && v >= 1 && v <= 9) ? Math.round(v * 10) / 10 : null;
+  });
+  return scores;
+}
+
+function getDemoScores() {
+  return { sf: 6.4, ca: 4.2, pdca: 7.1, lc: 5.8, olc: 3.9 };
+}
+
+function renderCards(scores) {
+  const grid = document.getElementById('scoreGrid');
+  const allScores = KEYS.map(k => scores[k]).filter(v => v !== null);
+  const maxScore = allScores.length ? Math.max(...allScores) : null;
+
+  KEYS.forEach((k, i) => {
+    const val = scores[k];
+    const isHighest = val === maxScore;
+    const pct = val ? ((val - 1) / 8) * 100 : 0;
+
+    const card = document.createElement('div');
+    card.className = 'score-card' + (isHighest ? ' highlight' : '');
+    card.innerHTML = `
+      <div class="score-label">${LABELS[i]}</div>
+      <div class="score-value">${val !== null ? val.toFixed(1) : '—'}<span>/ 9</span></div>
+      <div class="score-bar-track">
+        <div class="score-bar-fill" style="width: 0%" data-target="${pct.toFixed(1)}"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  setTimeout(() => {
+    document.querySelectorAll('.score-bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.target + '%';
+    });
+  }, 100);
+}
+
+function renderChart(scores) {
+  const data = KEYS.map(k => scores[k] !== null ? scores[k] : 0);
+  const ctx = document.getElementById('radarChart').getContext('2d');
+
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: LABELS,
+      datasets: [{
+        label: 'Your score',
+        data: data,
+        backgroundColor: COLORS.radarFill,
+        borderColor: COLORS.radarStroke,
+        borderWidth: 2,
+        pointBackgroundColor: COLORS.radarPoint,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.raw.toFixed(1)} / 9`
+          }
+        }
+      },
+      scales: {
+        r: {
+          min: 0,
+          max: 9,
+          ticks: {
+            stepSize: 1,
+            color: COLORS.tick,
+            font: { size: 10, family: 'DM Sans' },
+            backdropColor: 'rgba(247,245,240,0.75)',
+            callback: v => v === 0 ? '' : v
+          },
+          grid: { color: COLORS.grid },
+          angleLines: { color: COLORS.grid },
+          pointLabels: {
+            font: { size: 12, family: 'DM Sans', weight: '400' },
+            color: '#1A1A18',
+            callback: label => {
+              const words = label.split(' ');
+              const lines = [];
+              let line = '';
+              words.forEach(w => {
+                if ((line + w).length > 18) { lines.push(line.trim()); line = w + ' '; }
+                else { line += w + ' '; }
+              });
+              if (line.trim()) lines.push(line.trim());
+              return lines;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderInterpretation(scores) {
+  const container = document.getElementById('interpContent');
+  const sorted = KEYS
+    .map((k, i) => ({ key: k, label: LABELS[i], val: scores[k] }))
+    .filter(x => x.val !== null)
+    .sort((a, b) => b.val - a.val);
+
+  sorted.forEach(item => {
+    let level = item.val >= 7 ? 'well applied' : item.val >= 4 ? 'partially applied' : 'limited application observed';
+    const row = document.createElement('div');
+    row.className = 'interp-row';
+    row.innerHTML = `<span class="interp-score">${item.val.toFixed(1)}</span><span><strong>${item.label}</strong> — ${level}.</span>`;
+    container.appendChild(row);
+  });
+}
+
+async function downloadPDF() {
+  const btn = document.querySelector('.download-btn');
+  const footer = document.querySelector('.footer-note');
+  btn.style.display = 'none';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const canvas = await html2canvas(document.getElementById('report'), {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#F7F5F0'
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * pageW) / canvas.width;
+
+    let yPos = 0;
+    let remaining = imgH;
+
+    while (remaining > 0) {
+      pdf.addImage(imgData, 'PNG', 0, -yPos, imgW, imgH);
+      remaining -= pageH;
+      yPos += pageH;
+      if (remaining > 0) pdf.addPage();
+    }
+
+    pdf.save('HK_results.pdf');
+  } catch (e) {
+    alert('PDF generation failed. Please try printing this page instead (Ctrl+P / Cmd+P).');
+    console.error(e);
+  }
+
+  btn.style.display = 'inline-flex';
+}
+
+(function init() {
+  let scores = getParams();
+  const hasRealData = KEYS.some(k => scores[k] !== null);
+  if (!hasRealData) scores = getDemoScores();
+
+  renderCards(scores);
+  renderChart(scores);
+  renderInterpretation(scores);
+
+  if (!hasRealData) {
+    const note = document.createElement('div');
+    note.style.cssText = 'background:#FDF0E0;border:1px solid rgba(186,117,23,0.2);border-radius:8px;padding:12px 16px;font-size:13px;color:#7A4F0A;margin-bottom:24px;';
+    note.textContent = 'Preview mode — example scores shown. In the live survey, your actual scores will appear here.';
+    document.querySelector('.grid').before(note);
+  }
+})();
+</script>
+</body>
+</html>
